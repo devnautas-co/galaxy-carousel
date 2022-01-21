@@ -2,19 +2,30 @@ const htmlCollectionToArray = (htmlCollection) => Array.prototype.slice.call(htm
 
 const findActive = itemList => itemList.find(item => item.classList.contains("active"));
 
-const updatePreviousItems = (item, multiplier) => {
+const getPreviousShownItem = (item, shownItems) => {
+    if (item && shownItems)
+        return getPreviousShownItem(item.previousElementSibling, shownItems - 1);
+
+    return item;
+}
+
+const calcLeft = (item, multiplier, shownItems) => {
+    const left = parseFloat(item.style.left.replace("%", ""));
+    const calc = left + 100 / shownItems * multiplier;
+    return calc.toFixed(2);
+}
+
+const updatePreviousItems = (item, multiplier, shownItems) => {
     if (item && item.classList.contains("galaxy-item")) {
-        const left = parseInt(item.style.left.replace("%", ""));
-        item.style.left = `${left + 100 * multiplier}%`;
-        updatePreviousItems(item.previousElementSibling, multiplier);
+        item.style.left = `${calcLeft(item, multiplier, shownItems)}%`;
+        updatePreviousItems(item.previousElementSibling, multiplier, shownItems);
     }
 }
 
-const updateNextItems = (item, multiplier) => {
+const updateNextItems = (item, multiplier, shownItems) => {
     if (item && item.classList.contains("galaxy-item")) {
-        const left = parseInt(item.style.left.replace("%", ""));
-        item.style.left = `${left + 100 * multiplier}%`;
-        updateNextItems(item.nextElementSibling, multiplier);
+        item.style.left = `${calcLeft(item, multiplier, shownItems)}%`;
+        updateNextItems(item.nextElementSibling, multiplier, shownItems);
     }
 }
 
@@ -30,9 +41,15 @@ const galaxyCarousel = (options) => {
 
     carousels.forEach((carousel, index) => {
         const carouselItems = htmlCollectionToArray(carousel.querySelectorAll(".galaxy-item"));
+
         carouselItems.forEach((carousel, index) => {
-            carousel.style.width = `${100 / options.shownItems}%`;
-            carousel.style.left = `${index * (100 / options.shownItems)}%`;
+            if (index === options.shownItems - 1)
+                carousel.classList.add("active");
+
+            const width = 100 / options.shownItems;
+            carousel.style.width = `${width.toFixed(2)}%`;
+            const left = index * (100 / options.shownItems);
+            carousel.style.left = `${left.toFixed(2)}%`;
         });
 
         if (options.showButtons) {
@@ -48,13 +65,13 @@ const galaxyCarousel = (options) => {
                     currentActive.nextElementSibling &&
                     currentActive.nextElementSibling.classList.contains("galaxy-item")
                 ) {
-                    updatePreviousItems(currentActive.previousElementSibling, -1);
+                    updatePreviousItems(currentActive.previousElementSibling, -1, options.shownItems);
 
                     currentActive.classList.remove("active");
 
                     currentActive.nextElementSibling.classList.add("active");
 
-                    updateNextItems(currentActive, -1);
+                    updateNextItems(currentActive, -1, options.shownItems);
                 }
             });
     
@@ -68,15 +85,16 @@ const galaxyCarousel = (options) => {
                 if (
                     currentActive &&
                     currentActive.previousElementSibling &&
-                    currentActive.previousElementSibling.classList.contains("galaxy-item")
+                    currentActive.previousElementSibling.classList.contains("galaxy-item") &&
+                    getPreviousShownItem(currentActive, options.shownItems)
                 ) {
-                    updateNextItems(currentActive.nextElementSibling, 1);
+                    updateNextItems(currentActive.nextElementSibling, 1, options.shownItems);
 
                     currentActive.classList.remove("active");
 
                     currentActive.previousElementSibling.classList.add("active");
 
-                    updatePreviousItems(currentActive, 1);
+                    updatePreviousItems(currentActive, 1, options.shownItems);
                 }
             });
         }
