@@ -1,6 +1,8 @@
 const htmlCollectionToArray = (htmlCollection) => Array.prototype.slice.call(htmlCollection);
 
-const findActive = itemList => itemList.find(item => item.classList.contains("active"));
+const findActiveItem = itemList => itemList.find(item => item.classList.contains("active"));
+
+const findActiveDot = dotsList => dotsList.find(item => item.classList.contains("active"));
 
 const getPreviousShownItem = (item, shownItems) => {
     if (item && shownItems)
@@ -37,28 +39,48 @@ const updateNextItems = (item, multiplier, shownItems) => {
  */
 
 const galaxyCarousel = (options) => {
+    if (!options) {
+        options = {};
+        options.container = ".galaxy-carousel-container";
+        options.showButtons = true;
+        options.showDots = false;
+        options.shownItems = 1;
+    } else {
+        options.container = options.container ?? ".galaxy-carousel-container";
+        options.showButtons = options.showButtons ?? true;
+        options.showDots = options.showDots ?? false;
+        options.shownItems = options.shownItems ?? 1;
+    }
+
     const carousels = htmlCollectionToArray(document.querySelectorAll(options.container));
 
     carousels.forEach((carousel, index) => {
         const carouselItems = htmlCollectionToArray(carousel.querySelectorAll(".galaxy-item"));
 
-        carouselItems.forEach((carousel, index) => {
-            if (index === options.shownItems - 1)
-                carousel.classList.add("active");
+        if (options.showDots) {
+            const dots = document.createElement("div");
+            dots.setAttribute("id", `galaxy-dots-${index}`);
+            carousel.appendChild(dots);
 
-            const width = 100 / options.shownItems;
-            carousel.style.width = `${width.toFixed(2)}%`;
-            const left = index * (100 / options.shownItems);
-            carousel.style.left = `${left.toFixed(2)}%`;
-        });
+            for (let i = 0; i < carouselItems.length; i++) {
+                const dot = document.createElement("div");
+                dot.classList.add("galaxy-dot");
+
+                if (i === options.shownItems - 1) {
+                    dot.classList.add("active");
+                }
+
+                dots.appendChild(dot);
+            }
+        }
 
         if (options.showButtons) {
             const nextButton = document.createElement("div");
-            nextButton.setAttribute("id", "galaxy-next-button");
+            nextButton.setAttribute("id", `${index}-galaxy-next-button`);
             carousel.appendChild(nextButton);
 
             nextButton.addEventListener("click", () => {
-                const currentActive = findActive(carouselItems);
+                const currentActive = findActiveItem(carouselItems);
 
                 if (
                     currentActive &&
@@ -71,16 +93,26 @@ const galaxyCarousel = (options) => {
 
                     currentActive.nextElementSibling.classList.add("active");
 
+                    if (options.showDots) {
+                        const dots = htmlCollectionToArray(document.querySelectorAll(`#galaxy-dots-${index} .galaxy-dot`));
+                        const activeDot = findActiveDot(dots);
+
+                        if (activeDot && activeDot.nextElementSibling) {
+                            activeDot.classList.remove("active");
+                            activeDot.nextElementSibling.classList.add("active");
+                        }
+                    }
+
                     updateNextItems(currentActive, -1, options.shownItems);
                 }
             });
     
             const prevButton = document.createElement("div");
-            prevButton.setAttribute("id", "galaxy-prev-button");
+            prevButton.setAttribute("id", `${index}-galaxy-prev-button`);
             carousel.appendChild(prevButton);
 
             prevButton.addEventListener("click", () => {
-                const currentActive = findActive(carouselItems);
+                const currentActive = findActiveItem(carouselItems);
 
                 if (
                     currentActive &&
@@ -94,9 +126,29 @@ const galaxyCarousel = (options) => {
 
                     currentActive.previousElementSibling.classList.add("active");
 
+                    if (options.showDots) {
+                        const dots = htmlCollectionToArray(document.querySelectorAll(`#galaxy-dots-${index} .galaxy-dot`));
+                        const activeDot = findActiveDot(dots);
+
+                        if (activeDot && activeDot.previousElementSibling) {
+                            activeDot.classList.remove("active");
+                            activeDot.previousElementSibling.classList.add("active");
+                        }
+                    }
+
                     updatePreviousItems(currentActive, 1, options.shownItems);
                 }
             });
         }
+
+        carouselItems.forEach((carousel, index) => {
+            if (index === options.shownItems - 1)
+                carousel.classList.add("active");
+
+            const width = 100 / options.shownItems;
+            carousel.style.width = `${width.toFixed(2)}%`;
+            const left = index * (100 / options.shownItems);
+            carousel.style.left = `${left.toFixed(2)}%`;
+        });
     });
 };
